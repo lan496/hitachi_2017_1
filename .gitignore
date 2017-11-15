@@ -1,3 +1,6 @@
 .out
 .o
 .pyc
+
+data/*
+bin/*
