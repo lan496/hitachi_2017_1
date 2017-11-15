@@ -19,12 +19,18 @@ int main(){
   int V, E, Vemb, Eemb;
   cin >> V >> E;
   vector<int> u(E), v(E), w(E);
-  REP(i, E) cin >> u[i] >> v[i] >> w[i];
+  REP(i, E) {
+    cin >> u[i] >> v[i] >> w[i];
+    --u[i]; --v[i];
+  }
   cin >> Vemb >> Eemb;
   vector<int> a(Eemb), b(Eemb);
-  REP(i, Eemb) cin >> a[i] >> b[i];
+  REP(i, Eemb) {
+    cin >> a[i] >> b[i];
+    --a[i]; --b[i];
+  }
   int L = sqrt(Vemb);
-
+  
   // sort by total weights
   vector<int> total_weights(V, 0);
   vector<pair<int, int>> nodes(V);
@@ -37,30 +43,22 @@ int main(){
   }
   sort(nodes.rbegin(), nodes.rend());
 
-  REP(i, V) {
-    cout << nodes[i].first << " " << nodes[i].second << endl;
-  }
-
   vector<vector<bool>> used(L, vector<bool> (L, false));
   queue<pair<int,int>> que;
 
   vector<int> s(V), t(V);
 
-  que.push(make_pair(L / 2, L / 2));
-  used[L/2][L/2] = true;
-  s[0] = nodes[0].second;
-  t[0] = Gemb_index(L/2, L/2, L);
+  int y, x;
 
   for(int i = 0; i < V; ++i) {
-    int y, x;
     if(i == 0) {
       y = L / 2;
       x = L / 2;
     }else{
       while(1) {
         auto q = que.front(); que.pop();
-        y = q.second / L;
-        x = q.second % L;
+        y = q.first;
+        x = q.second;
         if(!used[y][x]) break;
       }
     }
@@ -70,8 +68,9 @@ int main(){
 
     for(int dy = -1; dy <= 1; ++dy) {
       for(int dx = -1; dx <= 1; ++dx) {
-        if(abs(dx) + abs(dy) == 0 || abs(dx) + abs(dy) > 2) continue;
-        int yi = y + dy, xi = x + dx;
+        if(dy == 0 && dx == 0) continue;
+        int yi = y + dy;
+        int xi = x + dx;
         if(yi < 0 || yi >= L || xi < 0 || xi >= L) continue;
         que.push(make_pair(yi, xi));
       }
