@@ -72,7 +72,7 @@ void solve_9(vector<vector<int>> &Gadj, int V, int L) {
   return;
 }
 
-vector<int> metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, vector<int> &v, vector<int> &w, double T0) {
+void metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, vector<int> &v, vector<int> &w, double T0, vector<int> &phi) {
   // When T0 <= 0, do greedy.
   int Vemb = L * L;
   // sort by total weights
@@ -91,7 +91,7 @@ vector<int> metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<in
     }
   }
 
-  vector<int> phi(V, -1);
+  phi.assign(V, -1);
   vector<int> inverse(Vemb, -1);
   vector<map<int,int>> gain(V);
 
@@ -152,19 +152,20 @@ vector<int> metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<in
       }
     }
   }
-  return phi;
 }
 
 void solve_more_than_9(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, vector<int> &v, vector<int> &w) {
-  vector<int> phi = metropolis(Gadj, V, E, L, u, v, w, 0);
+  vector<int> phi;
+  metropolis(Gadj, V, E, L, u, v, w, 0, phi);
   int score_max = score(Gadj, phi, L);
 
   //int N = 0;
-  int N = 12;
+  int N = 15;
   double T0 = 0.3;
 
   REP(i,N) {
-    vector<int> phi_tmp = metropolis(Gadj, V, E, L, u, v, w, T0);
+    vector<int> phi_tmp;
+    metropolis(Gadj, V, E, L, u, v, w, T0, phi_tmp);
     int score_tmp = score(Gadj, phi_tmp, L);
     //cerr << score_max << " " << score_tmp << endl;
     if(score_tmp > score_max) {
