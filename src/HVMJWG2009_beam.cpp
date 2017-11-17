@@ -24,7 +24,7 @@ public:
   ~state() {}
 };
 
-bool comp(pair<int,state> &lhs, pair<int,state> &rhs) {
+bool comp(pair<int,int> &lhs, pair<int,int> &rhs) {
   return lhs.first > rhs.first;
 }
 
@@ -89,7 +89,8 @@ int main(){
   beam.push_back(make_pair(0, state(phi, inverse, cnd)));
 
   for(int i = 1; i < V; ++i) {
-    vector<pair<int,state>> beam_tmp;
+    vector<state> state_tmp;
+    vector<pair<int,int>> gain_tmp;
     for (auto b : beam){
       REP(j, V) {
         if(b.second.phi[j] != -1) continue;
@@ -121,13 +122,18 @@ int main(){
             int qtmp = Gemb_index(yk, xk, L);
             cnd_tmp.insert(qtmp);
           }
-          beam_tmp.push_back(make_pair(gain, state(phi_tmp, inverse_tmp, cnd_tmp)));
+          state_tmp.push_back(state(phi_tmp, inverse_tmp, cnd_tmp));
+          int m = gain_tmp.size();
+          gain_tmp.push_back(make_pair(gain, m));
         }
       }
     }
-    partial_sort(beam_tmp.begin(), beam_tmp.begin() + width, beam_tmp.end(), comp);
+    partial_sort(gain_tmp.begin(), gain_tmp.begin() + width, gain_tmp.end(), comp);
     beam.clear();
-    REP(j, width) beam.push_back(beam_tmp[j]);
+    REP(j, width) {
+      int idx = gain_tmp[j].second;
+      beam.push_back(make_pair(gain_tmp[j].first, state_tmp[idx]));
+    }
   }
 
   REP(i, V) cout << i + 1 << " " << beam[0].second.phi[i] + 1 << endl;

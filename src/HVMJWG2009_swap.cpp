@@ -155,12 +155,34 @@ void metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, 
   return;
 }
 
-void swap_nodes(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &phi){
+bool is_injective(const vector<int> &phi) {
+  set<int> st;
+  for(int e: phi) {
+    st.insert(e);
+  }
+  return (st.size() == phi.size());
+}
+
+bool is_well_defined(const vector<int> &inverse) {
+  set<int> st;
+  int cnt = 0;
+  for(int e: inverse) {
+    if(e == -1) continue;
+    st.insert(e);
+    ++cnt;
+  }
+  return (st.size() == cnt);
+}
+
+void swap_nodes(const vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &phi){
   int Vemb = L * L;
   vector<int> inverse(Vemb, -1);
   REP(i, V) inverse[phi[i]] = i;
 
-  int M = 100;
+  int M = 5000000;
+  double T0 = 0.4;
+  double Tlast = 0.1;
+
   REP(i, M) {
     int gain = 0;
     int u = randxor() % V;
@@ -169,24 +191,32 @@ void swap_nodes(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &phi
     int qu = phi[u], qv = phi[v];
     REP(k, 8) {
       int qu_yk = qu / L + dy[k];
-      int qu_xk = qu / L + dx[k];
+      int qu_xk = qu % L + dx[k];
+      if(qu_yk < 0 || qu_yk >= L || qu_xk < 0 || qu_xk >= L) continue;
       int qktmp = Gemb_index(qu_yk, qu_xk, L);
       if(inverse[qktmp] == -1 || qktmp == qv) continue;
       gain += Gadj[v][inverse[qktmp]] - Gadj[u][inverse[qktmp]];
     }
     REP(k, 8) {
       int qv_yk = qv / L + dy[k];
-      int qv_xk = qv / L + dx[k];
+      int qv_xk = qv % L + dx[k];
+      if(qv_yk < 0 || qv_yk >= L || qv_xk < 0 || qv_xk >= L) continue;
       int qktmp = Gemb_index(qv_yk, qv_xk, L);
       if(inverse[qktmp] == -1 || qktmp == qu) continue;
       gain += Gadj[u][inverse[qktmp]] - Gadj[v][inverse[qktmp]];
     }
 
-    if(gain > 0) {
-      swap(phi[u], phi[v]);
-      swap(inverse[qu], inverse[qv]);
+    double p = (double)randxor() / UINT_MAX;
+    double T = T0 + (double)(Tlast - T0) / M * i;
+
+    if(p <= min(1.0, exp(gain / T))) {
+      phi[u] = qv;
+      phi[v] = qu;
+      inverse[qv] = u;
+      inverse[qu] = v;
     }
   }
+  return;
 }
 
 void solve_by_swap(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, vector<int> &v, vector<int> &w){
@@ -251,8 +281,8 @@ int main(){
   }else if(V <= 9) {
     solve_9(Gadj, V, L);
   }else {
-    solve_more_than_9(Gadj, V, E, L, u, v, w);
-    //solve_by_swap(Gadj, V, E, L, u, v, w);
+    //solve_more_than_9(Gadj, V, E, L, u, v, w);
+    solve_by_swap(Gadj, V, E, L, u, v, w);
   }
   return 0;
 }
