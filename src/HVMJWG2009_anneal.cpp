@@ -93,64 +93,63 @@ vector<int> metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<in
 
   vector<int> phi(V, -1);
   vector<int> inverse(Vemb, -1);
-  set<int> cdd;
+  vector<map<int,int>> gain(V);
 
-  int emb_center = Gemb_index(L / 2, L / 2, L);
-  phi[argmaxi] = emb_center;
-  inverse[emb_center] = argmaxi;
-  REP(k, 8) {
-    int yk = L / 2 + dy[k];
-    int xk = L / 2 + dx[k];
-    //if(yk < 0 || yk >= L || xk < 0 || xk >= L) continue;
-    int qtmp = Gemb_index(yk, xk, L);
-    cdd.insert(qtmp);
-  }
-
-  for(int i = 1; i < V; ++i) {
+  for(int i = 0; i < V; ++i) {
     int max = -1;
     int argmaxj, argmaxq;
-    REP(j, V) {
-      if(phi[j] != -1) continue;
-      for (int q : cdd) {
-        if(inverse[q] != -1) {
-          cdd.erase(q);
-          continue;
-        }
-        int gain = 0;
-        REP(k, 8) {
-          int yk = q / L + dy[k];
-          int xk = q % L + dx[k];
-          if(yk < 0 || yk >= L || xk < 0 || xk >= L) continue;
-          int qtmp = Gemb_index(yk, xk, L);
-          if(inverse[qtmp] == -1) continue;
-          gain += Gadj[j][inverse[qtmp]];
-        }
 
-        double crt;
-        if(T0 > 0) {
-          crt = min(1.0, exp((gain - max) / T0));
-        }else{
-          crt = (gain > max) ? 1 : 0;
-        }
+    if(i == 0) {
+      argmaxj = argmaxi;
+      argmaxq = Gemb_index(L / 2, L / 2, L);
+    }else{
+      REP(j, V) {
+        if(phi[j] != -1) continue;
+        for (auto itr = gain[j].begin(); itr != gain[j].end(); ++itr) {
+          //if(inverse[itr->first] != -1) continue;
+          double crt;
+          if(T0 > 0) {
+            crt = min(1.0, exp((itr->second - max) / T0));
+          }else{
+            crt = (itr->second > max) ? 1 : 0;
+          }
 
-        double p = (double)randxor() / UINT_MAX;
-        if(max == -1 || p <= crt) {
-          max = gain;
-          argmaxj = j;
-          argmaxq = q;
+          double p = (double)randxor() / UINT_MAX;
+          if(max == -1 || p <= crt) {
+            max = itr->second;
+            argmaxj = j;
+            argmaxq = itr->first;
+          }
         }
       }
     }
+
     phi[argmaxj] = argmaxq;
     inverse[argmaxq] = argmaxj;
 
-    cdd.erase(argmaxq);
+    gain[argmaxj].clear();
+
     REP(k, 8) {
       int yk = argmaxq / L + dy[k];
       int xk = argmaxq % L + dx[k];
       if(yk < 0 || yk >= L || xk < 0 || xk >= L) continue;
       int qtmp = Gemb_index(yk, xk, L);
-      cdd.insert(qtmp);
+      if(inverse[qtmp] != -1) continue;
+      REP(j, V) {
+        if(phi[j] != -1) continue;
+        gain[j][qtmp] += Gadj[j][argmaxj];
+      }
+    }
+    REP(j, V) {
+      if(phi[j] != -1) continue;
+      auto itr = gain[j].begin();
+      while(itr != gain[j].end()) {
+        if(inverse[itr->first] != -1) {
+          itr = gain[j].erase(itr);
+        }else{
+          ++itr;
+        }
+      }
     }
   }
   return phi;
@@ -160,6 +159,7 @@ void solve_more_than_9(vector<vector<int>> &Gadj, int V, int E, int L, vector<in
   vector<int> phi = metropolis(Gadj, V, E, L, u, v, w, 0);
   int score_max = score(Gadj, phi, L);
 
+  //int N = 0;
   int N = 12;
   double T0 = 0.3;
 
