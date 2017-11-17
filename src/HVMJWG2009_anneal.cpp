@@ -94,6 +94,7 @@ void metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, 
   phi.assign(V, -1);
   vector<int> inverse(Vemb, -1);
   vector<map<int,int>> gain(V);
+  set<int> cnd;
 
   for(int i = 0; i < V; ++i) {
     int max = -1;
@@ -105,20 +106,33 @@ void metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, 
     }else{
       REP(j, V) {
         if(phi[j] != -1) continue;
-        for (auto itr = gain[j].begin(); itr != gain[j].end(); ++itr) {
-          //if(inverse[itr->first] != -1) continue;
+        for (int q : cnd) {
+          if(inverse[q] != -1) {
+            cnd.erase(q);
+            continue;
+          }
+          int gain = 0;
+          REP(k, 8) {
+            int yk = q / L + dy[k];
+            int xk = q % L + dx[k];
+            if(yk < 0 || yk >= L || xk < 0 || xk >= L) continue;
+            int qtmp = Gemb_index(yk, xk, L);
+            if(inverse[qtmp] == -1) continue;
+            gain += Gadj[j][inverse[qtmp]];
+          }
+
           double crt;
           if(T0 > 0) {
-            crt = min(1.0, exp((itr->second - max) / T0));
+            crt = min(1.0, exp((gain - max) / T0));
           }else{
-            crt = (itr->second > max) ? 1 : 0;
+            crt = (gain > max) ? 1 : 0;
           }
 
           double p = (double)randxor() / UINT_MAX;
           if(max == -1 || p <= crt) {
-            max = itr->second;
+            max = gain;
             argmaxj = j;
-            argmaxq = itr->first;
+            argmaxq = q;
           }
         }
       }
@@ -127,7 +141,7 @@ void metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, 
     phi[argmaxj] = argmaxq;
     inverse[argmaxq] = argmaxj;
 
-    gain[argmaxj].clear();
+    cnd.erase(argmaxq);
 
     REP(k, 8) {
       int yk = argmaxq / L + dy[k];
@@ -135,21 +149,7 @@ void metropolis(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, 
       if(yk < 0 || yk >= L || xk < 0 || xk >= L) continue;
       int qtmp = Gemb_index(yk, xk, L);
       if(inverse[qtmp] != -1) continue;
-      REP(j, V) {
-        if(phi[j] != -1) continue;
-        gain[j][qtmp] += Gadj[j][argmaxj];
-      }
-    }
-    REP(j, V) {
-      if(phi[j] != -1) continue;
-      auto itr = gain[j].begin();
-      while(itr != gain[j].end()) {
-        if(inverse[itr->first] != -1) {
-          itr = gain[j].erase(itr);
-        }else{
-          ++itr;
-        }
-      }
+      cnd.insert(qtmp);
     }
   }
 }
