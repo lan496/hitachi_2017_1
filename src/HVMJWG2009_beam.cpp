@@ -32,6 +32,22 @@ int Gemb_index(int y, int x, int L) {
   return y * L + x;
 }
 
+int score(vector<vector<int>> &Gadj, vector<int> &phi, int L) {
+  int V = Gadj.size();
+  int ret = 0;
+
+  REP(i, V)for(int j = i + 1; j < V; ++j) {
+    int ya = phi[i] / L;
+    int xa = phi[i] % L;
+    int yb = phi[j] / L;
+    int xb = phi[j] % L;
+
+    if(max(abs(ya - yb), abs(xa - xb)) >= 2) continue;
+    ret += Gadj[i][j];
+  }
+  return ret;
+}
+
 bool is_injective(const vector<int> &phi) {
   set<int> st;
   for(int e: phi) {
@@ -51,30 +67,41 @@ bool is_well_defined(const vector<int> &inverse) {
   return ((int)st.size() == cnt);
 }
 
-int main(){
-  // read
-  int V, E, Vemb, Eemb;
-  cin >> V >> E;
-  vector<int> u(E), v(E), w(E);
-  REP(i, E) {
-    cin >> u[i] >> v[i] >> w[i];
-    --u[i]; --v[i];
+void solve_4(int V, int L) {
+  vector<int> phi(V);
+  int cnt = 0;
+  for(int y = 0; y <= 1; ++y) {
+    for(int x = 0; x <= 1; ++x) {
+      if(cnt >= V) continue;
+      phi[cnt] = Gemb_index(y, x, L);
+      ++cnt;
+    }
   }
-  cin >> Vemb >> Eemb;
-  vector<int> a(Eemb), b(Eemb);
-  REP(i, Eemb) {
-    cin >> a[i] >> b[i];
-    --a[i]; --b[i];
-  }
-  int L = sqrt(Vemb);
+  REP(i, V) cout << i + 1 << " " << phi[i] + 1 << endl;
+  return;
+}
 
-  // adjacency matrix for G
-  vector<vector<int>> Gadj(V, vector<int> (V, 0));
-  REP(i, E) {
-    Gadj[u[i]][v[i]] = w[i];
-    Gadj[v[i]][u[i]] = w[i];
-  }
+void solve_9(vector<vector<int>> &Gadj, int V, int L) {
+  vector<int> phi(V);
+  int score_max = -1;
 
+  vector<int> perm = {0, 1, 2, L, L + 1, L + 2, 2 * L, 2 * L + 1, 2 * L + 2};
+  do {
+    vector<int> phi_tmp(V);
+    REP(i, V) phi_tmp[i] = perm[i];
+    int score_tmp = score(Gadj, phi_tmp, L);
+    if(score_tmp > score_max) {
+      score_max = score_tmp;
+      REP(i, V) phi[i] = phi_tmp[i];
+    }
+  }while(next_permutation(ALL(perm)));
+
+  REP(i, V) cout << i + 1 << " " << phi[i] + 1 << endl;
+  return;
+}
+
+void beam_search(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u, vector<int> &v, vector<int> &w) {
+  int Vemb = L * L;
   // sort by total weights
   vector<int> total_weights(V, 0);
   vector<pair<int, int>> nodes(V);
@@ -102,7 +129,7 @@ int main(){
     cnd_first.insert(qtmp);
   }
 
-  int width = 2;
+  int width = 9;
   vector<pair<int,state*>> beam;
 
   state* first_node = new state(phi_first, inverse_first, cnd_first);
@@ -133,7 +160,7 @@ int main(){
       }
     }
 
-    if(width >= gain_tmp.size()) {
+    if(width >= (int)gain_tmp.size()) {
       partial_sort(gain_tmp.begin(), gain_tmp.begin() + width, gain_tmp.end(), comp);
     }else{
       sort(gain_tmp.begin(), gain_tmp.end(), comp);
@@ -165,7 +192,40 @@ int main(){
   }
 
   REP(i, V) cout << i + 1 << " " << beam[0].second->phi[i] + 1 << endl;
+  return;
+}
 
+int main(){
+  // read
+  int V, E, Vemb, Eemb;
+  cin >> V >> E;
+  vector<int> u(E), v(E), w(E);
+  REP(i, E) {
+    cin >> u[i] >> v[i] >> w[i];
+    --u[i]; --v[i];
+  }
+  cin >> Vemb >> Eemb;
+  vector<int> a(Eemb), b(Eemb);
+  REP(i, Eemb) {
+    cin >> a[i] >> b[i];
+    --a[i]; --b[i];
+  }
+  int L = sqrt(Vemb);
+
+  // adjacency matrix for G
+  vector<vector<int>> Gadj(V, vector<int> (V, 0));
+  REP(i, E) {
+    Gadj[u[i]][v[i]] = w[i];
+    Gadj[v[i]][u[i]] = w[i];
+  }
+
+  if(V <= 4) {
+    solve_4(V, L);
+  }else if(V <= 9) {
+    solve_9(Gadj, V, L);
+  }else {
+    beam_search(Gadj, V, E, L, u, v, w);
+  }
   return 0;
 }
 
