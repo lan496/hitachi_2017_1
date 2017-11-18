@@ -24,12 +24,31 @@ public:
   ~state() {}
 };
 
-bool comp(pair<int,int> &lhs, pair<int,int> &rhs) {
-  return lhs.first > rhs.first;
+bool comp(tuple<int,int,int,int> &lhs, tuple<int,int,int,int> &rhs) {
+  return get<0>(lhs) > get<0>(rhs);
 }
 
 int Gemb_index(int y, int x, int L) {
   return y * L + x;
+}
+
+bool is_injective(const vector<int> &phi) {
+  set<int> st;
+  for(int e: phi) {
+    st.insert(e);
+  }
+  return (st.size() == phi.size());
+}
+
+bool is_well_defined(const vector<int> &inverse) {
+  set<int> st;
+  int cnt = 0;
+  for(int e: inverse) {
+    if(e == -1) continue;
+    st.insert(e);
+    ++cnt;
+  }
+  return ((int)st.size() == cnt);
 }
 
 int main(){
@@ -68,75 +87,84 @@ int main(){
   }
   sort(nodes.rbegin(), nodes.rend());
 
-  vector<int> phi(V, -1);
-  vector<int> inverse(Vemb, -1);
-  set<int> cnd;
+  vector<int> phi_first(V, -1);
+  vector<int> inverse_first(Vemb, -1);
+  set<int> cnd_first;
 
   // first mapped node
-  phi[nodes[0].second] = Gemb_index(L / 2, L / 2, L);
-  inverse[Gemb_index(L / 2, L / 2, L)] = nodes[0].second;
+  phi_first[nodes[0].second] = Gemb_index(L / 2, L / 2, L);
+  inverse_first[Gemb_index(L / 2, L / 2, L)] = nodes[0].second;
   REP(k, 8) {
     int yk = L / 2 + dy[k];
     int xk = L / 2 + dx[k];
     if(yk < 0 || yk >= L || xk < 0 || xk >= L) continue;
     int qtmp = Gemb_index(yk, xk, L);
-    cnd.insert(qtmp);
+    cnd_first.insert(qtmp);
   }
 
   int width = 2;
-  vector<pair<int,state>> beam;
+  vector<pair<int,state*>> beam;
 
-  beam.push_back(make_pair(0, state(phi, inverse, cnd)));
+  state* first_node = new state(phi_first, inverse_first, cnd_first);
+  beam.push_back(make_pair(0, first_node));
 
   for(int i = 1; i < V; ++i) {
-    vector<state> state_tmp;
-    vector<pair<int,int>> gain_tmp;
-    for (auto b : beam){
+    vector<tuple<int,int,int,int>> gain_tmp; // (gain, j, q, beamIdx)
+    for (auto itr = beam.begin(); itr != beam.end(); ++itr){
       REP(j, V) {
-        if(b.second.phi[j] != -1) continue;
-        for (int q : b.second.cnd) {
-          if(b.second.inverse[q] != -1) {
-            b.second.cnd.erase(q);
+        state* s = itr->second;
+        if(s->phi[j] != -1) continue;
+        for (int q : s->cnd) {
+          if(s->inverse[q] != -1) {
+            s->cnd.erase(q);
             continue;
           }
-          int gain = b.first;
+          int gain = itr->first;
           REP(k, 8) {
             int yk = q / L + dy[k];
             int xk = q % L + dx[k];
             if(yk < 0 || yk >= L || xk < 0 || xk >= L) continue;
             int qtmp = Gemb_index(yk, xk, L);
-            if(b.second.inverse[qtmp] == -1) continue;
-            gain += Gadj[j][inverse[qtmp]];
+            if(s->inverse[qtmp] == -1) continue;
+            gain += Gadj[j][s->inverse[qtmp]];
           }
-          // add temp. state
-          vector<int> phi_tmp(b.second.phi);
-          vector<int> inverse_tmp(b.second.inverse);
-          set<int> cnd_tmp(b.second.cnd);
-          phi_tmp[j] = q;
-          inverse_tmp[q] = j;
-          cnd_tmp.erase(q);
-          REP(k, 8) {
-            int yk = q / L + dy[k];
-            int xk = q % L + dx[k];
-            if(yk < 0 || yk >= L || xk < 0 || xk >= L) continue;
-            int qtmp = Gemb_index(yk, xk, L);
-            cnd_tmp.insert(qtmp);
-          }
-          state_tmp.push_back(state(phi_tmp, inverse_tmp, cnd_tmp));
-          int m = gain_tmp.size();
-          gain_tmp.push_back(make_pair(gain, m));
+          gain_tmp.push_back(make_tuple(gain, j, q, distance(beam.begin(), itr)));
         }
       }
     }
-    partial_sort(gain_tmp.begin(), gain_tmp.begin() + width, gain_tmp.end(), comp);
-    beam.clear();
-    REP(j, width) {
-      int idx = gain_tmp[j].second;
-      beam.push_back(make_pair(gain_tmp[j].first, state_tmp[idx]));
+
+    if(width >= gain_tmp.size()) {
+      partial_sort(gain_tmp.begin(), gain_tmp.begin() + width, gain_tmp.end(), comp);
+    }else{
+      sort(gain_tmp.begin(), gain_tmp.end(), comp);
     }
+
+    vector<pair<int,state*>> beam_tmp;
+    REP(l, min(width, (int)gain_tmp.size())) {
+      int gain, j, q, idx;
+      tie(gain, j, q, idx) = gain_tmp[l];
+      state* s = beam[idx].second;
+      vector<int> phi_tmp(s->phi);
+      vector<int> inverse_tmp(s->inverse);
+      set<int> cnd_tmp(s->cnd);
+      phi_tmp[j] = q;
+      inverse_tmp[q] = j;
+      cnd_tmp.erase(q);
+      REP(k, 8) {
+        int yk = q / L + dy[k];
+        int xk = q % L + dx[k];
+        if(yk < 0 || yk >= L || xk < 0 || xk >= L) continue;
+        int qtmp = Gemb_index(yk, xk, L);
+        if(s->inverse[qtmp] != -1) continue;
+        cnd_tmp.insert(qtmp);
+      }
+      state* state_tmp = new state(phi_tmp, inverse_tmp, cnd_tmp);
+      beam_tmp.push_back(make_pair(gain, state_tmp));
+    }
+    beam = beam_tmp;
   }
 
-  REP(i, V) cout << i + 1 << " " << beam[0].second.phi[i] + 1 << endl;
+  REP(i, V) cout << i + 1 << " " << beam[0].second->phi[i] + 1 << endl;
 
   return 0;
 }
