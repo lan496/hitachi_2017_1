@@ -18,8 +18,8 @@ int read_string(char *str) {
 }
 
 int main(int argc, char** argv) {
-  if(argc != 4) {
-    fprintf(stderr, "Usage: %s <filename> <graphclass> <seed>\n", argv[0]);
+  if(argc != 4 && argc != 5) {
+    fprintf(stderr, "Usage: %s <filename> <graphclass> <seed> [V]\n", argv[0]);
     fprintf(stderr, "( <graphclass> \\in {0: random graph, 1: full graph} )\n");
     return 1;
   }
@@ -33,17 +33,26 @@ int main(int argc, char** argv) {
   int V = 0, E = 0, N = 0;
   int case_type = read_string(argv[2]);
   int seed      = read_string(argv[3]);
+
   Rand rnd(seed);
 
   if     (case_type == 0) {
     // random graph
-    V = rnd.NextInt(MIN_V, MAX_V);
+    if(argc == 4) {
+      V = rnd.NextInt(MIN_V, MAX_V);
+    }else {
+      V = read_string(argv[4]);
+    }
     E = rnd.NextInt(V-1, std::min(V*(V-1)/2, MAX_E));
     gen_randomgraph(fp, V, E, MIN_C, MAX_C, seed);
   }
   else if(case_type == 1) {
     // full graph
-    V = rnd.NextInt(MIN_V_full, MAX_V_full);
+    if(argc == 4) {
+      V = rnd.NextInt (MIN_V_full, MAX_V_full);
+    }else{
+      V = read_string(argv[4]);
+    }
     gen_fullgraph(fp, V, MIN_C, MAX_C, seed);
   }
   else {
