@@ -6,18 +6,28 @@ DIR=tmp
 
 mkdir ${DIR}
 
+R=0
+C=0
+
 for i in `seq 0 29`
 do
-  ./${BIN} < data/testcase_r_${i}.in 1> ${DIR}/testcase_r_${i}.out
-  SCORE=`./scripts/score_evaluator.out data/testcase_r_${i}.in ${DIR}/testcase_r_${i}.out`
-  echo ${SCORE}
+  BASE="testcase_r_${i}"
+  ./${BIN} < data/${BASE}.in 1> ${DIR}/${BASE}.out
+  SCORE=`./scripts/score_evaluator.out data/${BASE}.in ${DIR}/${BASE}.out`
+  echo ${BASE} ${SCORE}
+  scr=`echo ${SCORE} | cut -d ' ' -f2 | sed 's@/@@g'`
+  R=`expr ${R} + ${scr}`
 done
 
 for i in `seq 0 29`
 do
-  ./${BIN} < data/testcase_c_${i}.in 1> ${DIR}/testcase_c_${i}.out
-  SCORE=`./scripts/score_evaluator.out data/testcase_c_${i}.in ${DIR}/testcase_c_${i}.out`
-  echo ${SCORE}
+  BASE="testcase_c_${i}"
+  ./${BIN} < data/${BASE}.in 1> ${DIR}/${BASE}.out
+  SCORE=`./scripts/score_evaluator.out data/${BASE}.in ${DIR}/${BASE}.out`
+  echo ${BASE} ${SCORE}
+  scr=`echo ${SCORE} | cut -d ' ' -f2 | sed 's@/@@g'`
+  C=`expr ${C} + ${scr}`
 done
 
-rm -r ${DIR}
+echo "random:   ${R}"
+echo "complete: ${C}"
