@@ -121,6 +121,7 @@ void beam_search(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u,
   // first mapped node
   phi_first[nodes[0].second] = Gemb_index(L / 2, L / 2, L);
   inverse_first[Gemb_index(L / 2, L / 2, L)] = nodes[0].second;
+  /*
   REP(k, 8) {
     int yk = L / 2 + dy[k];
     int xk = L / 2 + dx[k];
@@ -128,14 +129,17 @@ void beam_search(vector<vector<int>> &Gadj, int V, int E, int L, vector<int> &u,
     int qtmp = Gemb_index(yk, xk, L);
     cnd_first.insert(qtmp);
   }
+  */
+  cnd_first.insert(Gemb_index(L / 2 + 1, L / 2, L));
 
-  int width = 9;
   vector<pair<int,state*>> beam;
 
   state* first_node = new state(phi_first, inverse_first, cnd_first);
   beam.push_back(make_pair(0, first_node));
 
   for(int i = 1; i < V; ++i) {
+    //int width = (double)(V - i) / (V - 1) * 16 + 1;
+    int width = 9;
     vector<tuple<int,int,int,int>> gain_tmp; // (gain, j, q, beamIdx)
     for (auto itr = beam.begin(); itr != beam.end(); ++itr){
       REP(j, V) {
